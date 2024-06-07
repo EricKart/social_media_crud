@@ -9,6 +9,9 @@ import time
 
 app = FastAPI()
 
+
+##############-------------DataBase Connection--------------------------------
+
 while True:
     try:
         conn = psycopg2.connect(
@@ -33,6 +36,9 @@ while True:
         print("Attempt to connect has completed.")
 
 
+#####-----------Schema------------------------
+
+
 class Post(BaseModel):
     title: str
     content: str
@@ -51,6 +57,9 @@ my_posts = [
 ]
 
 
+########
+
+
 def find_post(post_id: int):
     for post in my_posts:
         if post["id"] == post_id:
@@ -65,9 +74,15 @@ def find_index_post(post_id: int):
     return None
 
 
+###Root path
+
+
 @app.get("/")
 def root():
     return {"message": "Welcome to this FAST API Project!"}
+
+
+# /posts path to retrieve post
 
 
 @app.get("/posts")
@@ -78,60 +93,78 @@ def get_posts():
     return {"data": posts}
 
 
+# -------/posts path to create post
+
+
 @app.post("/posts", status_code=status.HTTP_201_CREATED)
 def create_posts(post: Post):
-    post_dict = post.model_dump()  # using model_dump instead of dict
-    post_dict["id"] = randrange(0, 10000000)
-    my_posts.append(post_dict)
-    return Response(
-        content=f"Your post: {post_dict} has been Created",
-        status_code=status.HTTP_201_CREATED,
+    cursor.execute(
+        """insert into posts (title, content, published) values(%s, %s, %s) returning*""",
+        (post.title, post.content, post.published),
     )
+    new_post = cursor.fetchone()
+    conn.commit()
+    return {"data": new_post}
 
 
 # to get a post by id search through my_post via id to get the specific post
 @app.get("/posts/{post_id}")
-def get_post(post_id: int):
-    post = find_post(post_id)
-    if post is None:
-        raise HTTPException(status_code=404, detail="Post not found!")
+def get_post(post_id: str):
+    cursor.execute("""select *from posts where id = %s""", (str(post_id),))
+    post = cursor.fetchone()
+    if not post:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Post with id: {post_id} is not found!",
+        )
     return {"post_details": post}
+
+
+# Deleting the post-----
 
 
 @app.delete("/posts/delete/{post_id}", status_code=status.HTTP_204_NO_CONTENT)
 def delete_post(post_id: int):
-    # ----Deleting specific post---------#
-    # find index in terms of id to delete that post
-    # post = find_post(post_id)
-    # if post is None:
-    #     raise HTTPException(status_code=404, detail="Post not found")
-    # my_posts.remove(post)
-    # return {"Deleted Details": f"Post with id {post_id} has been deleted! and the post is {post}"}
-    # --------Or you can use below code as in below code we are using find_index_post function from above code
 
-    index = find_index_post(post_id)
-    if index is None:
-        raise HTTPException(status_code=404, detail="Post not found!")
-    deleted_post = my_posts.pop(index)
+    cursor.execute(
+        """delete from posts where id = %s returning*""",
+        (str(post_id)),
+    )
+    delete_post = cursor.fetchone()
+    conn.commit()
+
+    if delete_post == None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Post with id {post_id} not found!",
+        )
     return Response(status_code=status.HTTP_204_NO_CONTENT)
+
+
+# ---Update the post
 
 
 @app.put("/posts/{post_id}")
 def update_post(post_id: int, post: Post):
-    index = find_index_post(post_id)
-    if index is None:
+    cursor.execute(
+        """
+        UPDATE posts 
+        SET title = %s, content = %s, published = %s 
+        WHERE id = %s 
+        RETURNING *;
+        """,
+        (post.title, post.content, post.published, post_id),
+    )
+    updated_post = cursor.fetchone()
+    conn.commit()
+
+    if updated_post is None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"Post with id: {post_id} does not exist!",
         )
 
-    # print(f"Updating post at index {index}")  # Debugging print statement
-    post_dict = post.model_dump()  # using model_dump instead of dict
-    post_dict["id"] = post_id
-    my_posts[index] = post_dict
-    # print(f"Updated post: {my_posts[index]}")  # Debugging print statement
-
-    return {"message": "Post has been updated", "updated_post": post_dict}
+    return {"message": "Post has been updated", "updated_post": updated_post}
 
 
 # Title str, Content str(we want just two things from user!)
