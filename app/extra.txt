@@ -1,0 +1,69 @@
+#####-----------Schema------------------------
+
+
+my_posts = [
+    {
+        "title": "title of the post 1",
+        "content": "content of post 1",
+        "published": True,
+        "id": 1,
+    },
+    {"title": "Favourite food", "content": "Pizza", "published": True, "id": 2},
+]
+
+
+########
+
+
+def find_post(post_id: int):
+    for post in my_posts:
+        if post["id"] == post_id:
+            return post
+    return None
+
+
+def find_index_post(post_id: int):
+    for i, p in enumerate(my_posts):
+        if p["id"] == post_id:
+            return i
+    return None
+
+
+
+
+    // delete
+
+    # cursor.execute(
+    #     """delete from posts where id = %s returning*""",
+    #     (str(post_id)),
+    # )
+    # delete_post = cursor.fetchone()
+    # conn.commit()
+
+
+
+
+    //update
+
+        # cursor.execute(
+    #     """
+    #     UPDATE posts
+    #     SET title = %s, content = %s, published = %s
+    #     WHERE id = %s
+    #     RETURNING *;
+    #     """,
+    #     (post.title, post.content, post.published, post_id),
+    # )
+    # updated_post = cursor.fetchone()
+    # conn.commit()
+
+
+
+
+    //create_post
+        # cursor.execute(
+    #     """insert into posts (title, content, published) values(%s, %s, %s) returning*""",
+    #     (post.title, post.content, post.published),
+    # )
+    # new_post = cursor.fetchone()
+    # conn.commit()
