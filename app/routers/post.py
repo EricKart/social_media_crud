@@ -16,7 +16,8 @@ def get_posts(
     db: Session = Depends(get_db),
     current_user: int = Depends(oauth2.get_current_user),
     limit: int = 5,
-    skip: int = 0, search: Optional[str] = "",
+    skip: int = 0,
+    search: Optional[str] = "",
 ):
     # cursor.execute("""select *from posts""")
     # posts = cursor.fetchall()
@@ -24,7 +25,7 @@ def get_posts(
 
     posts = (
         db.query(models.Post)
-        .filter(models.Post.owner_id == current_user.id, models.Post.title.contains(search))
+        .filter(models.Post.title.contains(search))
         .limit(limit)
         .offset(skip)
         .all()
